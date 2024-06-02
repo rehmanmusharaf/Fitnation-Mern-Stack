@@ -5,6 +5,7 @@ const port = process.env.PORT || 8080;
 const dotenv = require("dotenv");
 const fitnessstat = require("./Controlers/fitnessstat.js");
 const dietplan = require("./Controlers/dietplan.js");
+const exercise = require("./Controlers/exercise.js");
 // const cors = require("cors");
 dotenv.config();
 
@@ -53,9 +54,16 @@ app.get("/api/dietplans", dietplan);
 app.post("/api/registerProgress", fitnessstat);
 app.post("/api/updateprogress", fitnessstat);
 app.get("/api/getprogress", fitnessstat);
+app.get("/api/user-performance", fitnessstat);
 app.put("/activateuseracount", user);
 app.put("/deactivateuseracount", user);
 app.get("/getallusers", user);
+app.put("/updateprofile", user);
+app.post("/registerexercise", exercise);
+app.get("/getexercise", exercise);
+app.put("/updateexercise/:id", exercise);
+app.delete("/deleteexercise/:id", exercise);
+app.get("/admin/user-performance", fitnessstat);
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

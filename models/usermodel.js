@@ -26,12 +26,20 @@ const userSchema = new mongoose.Schema({
   },
   plantype: {
     type: String,
-    enum: ["lose-weight", "gain-weight", "lose-or-gain-weight-body-fitness"], // Improved enum values
+    enum: ["lose-weight", "gain-weight", "fitness"], // Improved enum values
     required: [true, "Please select a Plan Type!"],
   },
   currentweight: {
     type: Number,
     required: [true, "Please enter your Weight!"],
+  },
+  gainupto: {
+    type: Number,
+    required: [true, "Please Enter The gain Weight"],
+  },
+  looseupto: {
+    type: Number,
+    required: [true, "Please Enter The gain Weight"],
   },
   height: {
     type: Number,

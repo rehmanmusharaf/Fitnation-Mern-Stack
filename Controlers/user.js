@@ -1,7 +1,10 @@
 const express = require("express");
 const path = require("path");
+const axios = require("axios");
 const usermodel = require("../models/usermodel");
 const router = express.Router();
+const FitnessStat = require("../models/fitnessstatmodel.js");
+
 // const ErrorHandler = require("../utils/Errorhandler.js");
 // const catchasyncerr = require("../middleware/catchAsyncError.js");
 var jwt = require("jsonwebtoken");
@@ -31,23 +34,27 @@ router.post("/api/create-user", async (req, res, next) => {
   try {
     // console.log("API End Point Hit!");
     console.log("req.body is: ", req.body);
-
-    const {
+    let {
       full_name,
       email,
       phone,
       plantype,
+      gainupto,
+      looseupto,
       currentweight,
       height,
       dob,
       description,
       password,
     } = req.body;
-
+    gainupto = Number(gainupto);
+    looseupto = Number(looseupto);
+    console.log(gainupto, looseupto);
     if (
       !full_name ||
       !email ||
       !phone ||
+      !(gainupto || looseupto) ||
       !plantype ||
       !currentweight ||
       !height ||
@@ -72,6 +79,8 @@ router.post("/api/create-user", async (req, res, next) => {
       email,
       phone,
       plantype,
+      gainupto,
+      looseupto,
       currentweight,
       height,
       dob,
@@ -130,6 +139,7 @@ router.post("/api/activation", async (req, res, next) => {
     const { activation_token } = req.body;
     // console.log(activation_token);
     const newUser = jwt.verify(activation_token, process.env.JWT_SECRET_KEY);
+    // console.log("aftre hhit activation new User", newUser);
     if (!newUser) {
       return res
         .status(400)
@@ -143,6 +153,8 @@ router.post("/api/activation", async (req, res, next) => {
       plantype,
       currentweight,
       height,
+      gainupto,
+      looseupto,
       dob,
       description,
       password,
@@ -163,6 +175,8 @@ router.post("/api/activation", async (req, res, next) => {
       email,
       phone,
       plantype,
+      gainupto,
+      looseupto,
       currentweight,
       height,
       dob,
@@ -286,66 +300,103 @@ router.get("/user/logout", (req, res, next) => {
 //   }
 // });
 // isAdminAuthenticated,
-router.put("/activateuseracount", async (req, res, next) => {
-  try {
-    const { userid } = req.body;
-    // Fetch the user's details from the database
-    let user = await usermodel.findById(userid);
-    console.log(user);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+router.put(
+  "/activateuseracount",
+  isAdminAuthenticated,
+  async (req, res, next) => {
+    try {
+      const { userid } = req.body;
+      // Fetch the user's details from the database
+      let user = await usermodel.findById(userid);
+
+      // console.log(user);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      // Update the active status of the user
+      user.active = true;
+      await user.save();
+
+      let existingUser = await FitnessStat.findOne({ userid: userid });
+      if (existingUser) {
+        return res.status(200).json({
+          success: 200,
+          message: "User Acount is Activated but stats already exists",
+        });
+      }
+
+      // Create a new fitness stat entry for the user
+      const newFitnessStat = new FitnessStat({
+        userid: userid,
+        username: user.full_name,
+        stat: [
+          {
+            date: new Date(),
+            progress: {
+              stepcovered: 0,
+              caloriesburned: 0,
+              activeexercise: 0,
+              achievement: 0,
+            },
+          },
+        ],
+      });
+
+      // Save the new fitness stat entry to the database
+      await newFitnessStat.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "User account activated successfully",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error!",
+        error: error.message,
+      });
     }
-
-    // Update the active status of the user
-    user.active = true;
-
-    // Save the updated user details to the database
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "User account activated successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error!",
-      error: error.message,
-    });
   }
-});
-router.put("/deactivateuseracount", async (req, res, next) => {
-  try {
-    const { userid } = req.body;
-    // Fetch the user's details from the database
-    let user = await usermodel.findById(userid);
-    console.log(user);
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+);
+
+router.put(
+  "/deactivateuseracount",
+  isAdminAuthenticated,
+  async (req, res, next) => {
+    try {
+      const { userid } = req.body;
+      console.log("userid is: ", userid);
+      // Fetch the user's details from the database
+      let user = await usermodel.findById(userid);
+      console.log(user);
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+
+      // Update the active status of the user
+      user.active = false;
+
+      // Save the updated user details to the database
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "User account deactivated successfully",
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error!",
+        error: error.message,
+      });
     }
-
-    // Update the active status of the user
-    user.active = false;
-
-    // Save the updated user details to the database
-    await user.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "User account deactivated successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error!",
-      error: error.message,
-    });
   }
-});
+);
 // Route to get all users with pagination and separate active and inactive users
 
 router.get("/getallusers", isAdminAuthenticated, async (req, res) => {
@@ -386,4 +437,38 @@ router.get("/getallusers", isAdminAuthenticated, async (req, res) => {
     });
   }
 });
+
+router.put("/updateprofile", isAuthenticated, async (req, res) => {
+  const { email, ...updateFields } = req.body;
+  console.log(email, updateFields);
+  if (!email) {
+    return res
+      .status(400)
+      .json({ error: "Email is required to update profile." });
+  }
+
+  try {
+    const user = await usermodel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found." });
+    }
+
+    // Update the user with the fields provided in req.body
+    Object.keys(updateFields).forEach((key) => {
+      user[key] = updateFields[key];
+    });
+
+    await user.save();
+    res
+      .status(200)
+      .json({ success: true, message: "Profile updated successfully.", user });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({
+      success: false,
+      error: "An error occurred while updating the profile.",
+    });
+  }
+});
+
 module.exports = router;

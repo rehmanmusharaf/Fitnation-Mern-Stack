@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const dietplanmodel = require("../models/dietplanmodel");
-const { isAdminAuthenticated } = require("../middleware/auth");
+const { isAdminAuthenticated, isAuthenticated } = require("../middleware/auth");
 const router = express.Router();
 // isAdminAuthenticated,
 router.post("/api/dietregister", isAdminAuthenticated, async (req, res) => {
@@ -50,7 +50,7 @@ router.delete(
     }
   }
 );
-router.get("/api/dietplans", async (req, res) => {
+router.get("/api/dietplans", isAuthenticated, async (req, res) => {
   try {
     const dietPlans = await dietplanmodel.find();
     if (!dietPlans || dietPlans.length === 0) {
