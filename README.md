@@ -1,2 +1,2 @@
-# Fitnation-Mern-Stack
+# Fitness-mernstack
 # Fitness-mernstack
